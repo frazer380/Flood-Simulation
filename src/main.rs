@@ -6,28 +6,30 @@ use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
+use std::io;
 
 mod terrain;
 mod flood;
 
 fn main() -> Result<(), Error> {
-    let (mut terr, size, source) = terrain::read_terrain("terrain/NewYorkCity.terrain").unwrap();
+    println!("Select map:");
+    let map = terrain::get_terrain_files("./terrain");
+    let mut index = String::new();
+    io::stdin().read_line(&mut index).expect("Failed to read index input.");
+    let index: usize = index.trim().parse().expect("Could not convert index to a numbe.r");
+    let path = &map[index-1];
+    let (mut terr, size, source, range) = terrain::read_terrain(path.as_str()).unwrap();
 
-    //let (mut terr, size, source) = terrain::read_terrain("terrain/iceland.terrain").unwrap();
-    /*let terr: Vec<Vec<(f64, bool)>> = vec![
-        vec![(1, false), (0, false), (2, false), (2, false), (0, false)],
-        vec![(0, false), (2, false), (0, false), (2, false), (0, false)],
-        vec![(2, false), (2, false), (2, false), (2, false), (2, false)],
-        vec![(0, false), (0, false), (2, false), (0, false), (2, false)],
-        vec![(1, false), (0, false), (0, false), (0, false), (0, false)],
-    ];*/
+    println!("Input water height (SEA LEVEL: 0): ");
+    let mut water_height = String::new();
+    io::stdin().read_line(&mut water_height).expect("Failed to read water height input.");
+    let water_height: f64 = water_height.trim().parse().expect("Could not convert water height to a number.");
 
     println!("SIZE: {:?}", size);
 
     let height: u32 = size.0;
     let width: u32 = size.1;
 
-    let water_height: f64 = 0.0;
     flood::flood(&mut terr, source, water_height);
 
     env_logger::init();
@@ -51,7 +53,7 @@ fn main() -> Result<(), Error> {
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            draw(pixels.frame_mut(), width, &terr);
+            draw(pixels.frame_mut(), width, &terr, range);
             if let Err(err) = pixels.render() {
                 log_error("pixels.render", err);
                 *control_flow = ControlFlow::Exit;
@@ -84,7 +86,7 @@ fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
     }
 }
 
-fn draw(frame: &mut [u8], width: u32, terr: &Vec<Vec<(f64, bool)>>) {
+fn draw(frame: &mut [u8], width: u32, terr: &Vec<Vec<(f64, bool)>>, range: (f64, f64)) {
     for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
         let x = i % width as usize;
         let y = i / width as usize;
@@ -92,13 +94,13 @@ fn draw(frame: &mut [u8], width: u32, terr: &Vec<Vec<(f64, bool)>>) {
         let rgba = if data.1 {
             [0x00, 0x00, 0xff, 0xff]
         } else {
-           color_map(data.0)
+           color_map(data.0, range)
         };
         pixel.copy_from_slice(&rgba);
     }
 }
 
-fn color_map(height: f64) -> [u8; 4] {
+fn color_map(height: f64, range: (f64, f64)) -> [u8; 4] {
     let map: [[u8; 4]; 9] = [
         [0xf7, 0xfc, 0xf0, 0xff], 
         [0xe0, 0xf3, 0xdb, 0xff], 
@@ -110,12 +112,12 @@ fn color_map(height: f64) -> [u8; 4] {
         [0x08, 0x68, 0xac, 0xff],
         [0x08, 0x40, 0x81, 0xff]
         ];
-    
-    let min = -42.0;
-    let max = 274.0;
+        
+    let min = range.1;
+    let max = range.0;
     let normalized: usize = (((height - min) / (max - min))*10.0).floor() as usize;
     if normalized >= 9{
-        map[0]
+        map[8]
     } else {
         map[normalized]
     }

@@ -1,7 +1,17 @@
 use std::io::{self, BufReader};
 use std::io::prelude::*;
-use std::fs::File;
+use std::fs::{File, self};
 
+pub fn get_terrain_files(path: &str) -> Vec<String> {
+    let mut terrains: Vec<String> = Vec::new();
+    let paths = fs::read_dir(path).unwrap();
+    for (i, path) in paths.enumerate() {
+        let terr_path = path.unwrap().path().display().to_string();
+        println!("{}. {:?}", i+1, terr_path);
+        terrains.push(terr_path);
+    }
+    terrains
+}
 
 // Get initial data such as # of rows/cols, and position X and Y of water source
 fn get_data(data: &mut Vec<String>) -> (usize, usize) {
@@ -19,19 +29,31 @@ fn get_data(data: &mut Vec<String>) -> (usize, usize) {
 
 // Create vector that will be used in calculating which tiles are flooded
 // We go through each tile (elevation) and assign it with false (if the tile is flooded)
-fn setup_terrain(terr: Vec<String>) -> Vec<Vec<(f64, bool)>> {
+// We also return max and min of terrain
+fn setup_terrain(terr: Vec<String>) -> (Vec<Vec<(f64, bool)>>, (f64, f64)) {
     let mut out: Vec<Vec<(f64, bool)>> = Vec::new();
     let mut contents: Vec<(f64, bool)> = Vec::new();
+
+    let mut min: f64 = 0.0;
+    let mut max: f64 = 0.0;
+
     for row in terr {
         let items = row.split_whitespace();
         for elevation in items {
             let elevation: f64 = elevation.trim().parse().expect("Could not convert elevation value.");
+            if elevation < min {
+                min = elevation;
+            }
+
+            if elevation > max {
+                max = elevation;
+            }
             contents.push((elevation, false));
         }
         out.push(contents.clone());
         contents.clear(); 
     }
-    out
+    (out, (max, min))
 }
 
 fn get_size(data: &Vec<Vec<(f64, bool)>>) -> (u32, u32) {
@@ -39,7 +61,7 @@ fn get_size(data: &Vec<Vec<(f64, bool)>>) -> (u32, u32) {
 }
 
 // Read terrain from file and pas it through to get_data and return the result from setup_terrain
-pub fn read_terrain(path: &str) -> io::Result<(Vec<Vec<(f64, bool)>>, (u32, u32), (usize, usize))> {
+pub fn read_terrain(path: &str) -> io::Result<(Vec<Vec<(f64, bool)>>, (u32, u32), (usize, usize), (f64, f64))> {
     let file = File::open(path)?;
     let file = BufReader::new(file);
 
@@ -51,9 +73,9 @@ pub fn read_terrain(path: &str) -> io::Result<(Vec<Vec<(f64, bool)>>, (u32, u32)
 
 
     let source = get_data(&mut data);
-    let terrain = setup_terrain(data);
+    let (terrain, range) = setup_terrain(data);
     let size = get_size(&terrain);
 
-    Ok((terrain, size, source))
+    Ok((terrain, size, source, range))
 }
 
