@@ -11,7 +11,6 @@ fn neighbors(terr: &Vec<Vec<(f64, bool)>>, pos: (usize, usize)) -> Vec<(usize, u
         neighbors.push((pos_y, pos_x-1));
     }
 
-
     if pos_y < terr.len()-2 {
         neighbors.push((pos_y+1, pos_x))
     }
@@ -19,7 +18,6 @@ fn neighbors(terr: &Vec<Vec<(f64, bool)>>, pos: (usize, usize)) -> Vec<(usize, u
     if pos_x < terr[0].len()-2 {
         neighbors.push((pos_y, pos_x+1))
     }
-
 
     neighbors 
 }
