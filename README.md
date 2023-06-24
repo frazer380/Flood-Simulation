@@ -30,7 +30,7 @@ cargo run
 ### Basic operation
 
 
-<img src="./stuff/useage.gif" width="40" height="40" />
+<img src="./stuff/useage.gif" />
 
 When you run the program, you will be prompted to select which map to load. Select the map by the index in the list and you will then be able to enter the water level.
 
