@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 use error_iter::ErrorIter as _;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
@@ -10,28 +12,22 @@ use std::io;
 
 mod terrain;
 mod flood;
+fn main() {
+    let (path, height) = get_map();
+    match terrain::read_terrain(path.as_str()) {
+        Ok(mut terr) => {
+            flood::flood(&mut terr.terrain, terr.sources[0], height);
+            let (height, width) = terr.size;
+            match render(terr.terrain, width, height, terr.range) {
+                Ok(_) => {}
+                Err(err) => eprintln!("{}", err)
+            }
+        },
+        Err(err) => panic!("{}", err)
+    }
+}
 
-fn main() -> Result<(), Error> {
-    println!("Select map:");
-    let map = terrain::get_terrain_files("./terrain");
-    let mut index = String::new();
-    io::stdin().read_line(&mut index).expect("Failed to read index input.");
-    let index: usize = index.trim().parse().expect("Could not convert index to a numbe.r");
-    let path = &map[index-1];
-    let (mut terr, size, source, range) = terrain::read_terrain(path.as_str()).unwrap();
-
-    println!("Input water height (SEA LEVEL: 0): ");
-    let mut water_height = String::new();
-    io::stdin().read_line(&mut water_height).expect("Failed to read water height input.");
-    let water_height: f64 = water_height.trim().parse().expect("Could not convert water height to a number.");
-
-    println!("SIZE: {:?}", size);
-
-    let height: u32 = size.0;
-    let width: u32 = size.1;
-
-    flood::flood(&mut terr, source, water_height);
-
+fn render(terr: Vec<Vec<(f64, bool)>>, width: u32, height: u32, range: (f64, f64)) -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
@@ -77,6 +73,21 @@ fn main() -> Result<(), Error> {
         }
         window.request_redraw();
     });
+}
+
+fn get_map() -> (String, f64) {
+    println!("Select map:");
+    let map = terrain::get_terrain_files("./terrain");
+    let mut index = String::new();
+    io::stdin().read_line(&mut index).expect("Failed to read index input.");
+    let index: usize = index.trim().parse().expect("Could not convert index to a numbe.r");
+    let path = map[index-1].clone();
+
+    println!("Input water height (SEA LEVEL: 0): ");
+    let mut water_height = String::new();
+    io::stdin().read_line(&mut water_height).expect("Failed to read water height input.");
+    let water_height: f64 = water_height.trim().parse().expect("Could not convert water height to a number.");
+    (path, water_height)
 }
 
 fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {

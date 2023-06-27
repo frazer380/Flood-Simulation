@@ -24,7 +24,6 @@ fn neighbors(terr: &Vec<Vec<(f64, bool)>>, pos: (usize, usize)) -> Vec<(usize, u
 
 pub fn flood(terr: &mut Vec<Vec<(f64, bool)>>, source: (usize, usize), height: f64) {
     let mut queue: Vec<(usize, usize)> = Vec::new();
-    println!("Starting Source: {}/{} :: {}", source.0, source.1, terr[source.0][source.1].0);
     terr[source.0][source.1].1 = true;
     queue.push(source);
     
